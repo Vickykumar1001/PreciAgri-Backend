@@ -4,7 +4,7 @@ const productService = require("../services/product.service.js")
 // Create a new product
 async function createProduct(req, res) {
   try {
-    const product = await productService.createProduct(req.body);
+    const product = await productService.createProduct(req);
     return res.status(201).json(product);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -88,7 +88,7 @@ async function getAllProducts(req, res) {
   }
 }
 
-const createMultipleProduct= async (req, res) => {
+const createMultipleProduct = async (req, res) => {
   try {
     await productService.createMultipleProduct(req.body)
     res

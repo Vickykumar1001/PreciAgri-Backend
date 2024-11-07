@@ -1,8 +1,10 @@
 const Category = require("../models/category.model");
 const Product = require("../models/product.model");
+const User = require("../models/user.model");
 
 // Create a new product
-async function createProduct(reqData) {
+async function createProduct(req) {
+  const reqData = req.body;
   let topLevel = await Category.findOne({ name: reqData.topLavelCategory });
 
   if (!topLevel) {
@@ -43,9 +45,9 @@ async function createProduct(reqData) {
 
     thirdLevel = await thirdLavelCategory.save();
   }
-    
+
   const discountPercent = Math.round(((reqData.price - reqData.discountedPrice) / reqData.price) * 100);
-  const price=reqData.price
+  const price = reqData.price
   const product = new Product({
     title: reqData.title,
     color: reqData.color,
@@ -59,9 +61,16 @@ async function createProduct(reqData) {
     quantity: reqData.quantity,
     category: thirdLevel._id,
   });
-  
 
   const savedProduct = await product.save();
+
+  const userId = req.user.userId;
+  const user = await User.findById(userId);
+
+  if (user) {
+    user.product.push(savedProduct._id);
+    await user.save();
+  }
 
   return savedProduct;
 }
@@ -116,7 +125,7 @@ async function getAllProducts(reqQuery) {
     const existCategory = await Category.findOne({ name: category });
     if (existCategory)
       query = query.where("category").equals(existCategory._id);
-    else return { content: [], currentPage: 1, totalPages:1 };
+    else return { content: [], currentPage: 1, totalPages: 1 };
   }
 
   if (color) {
@@ -128,7 +137,7 @@ async function getAllProducts(reqQuery) {
 
   if (sizes) {
     const sizesSet = new Set(sizes);
-    
+
     query = query.where("sizes.name").in([...sizesSet]);
   }
 
@@ -165,7 +174,7 @@ async function getAllProducts(reqQuery) {
   const totalPages = Math.ceil(totalProducts / pageSize);
 
 
-  return { content: products, currentPage: pageNumber, totalPages:totalPages };
+  return { content: products, currentPage: pageNumber, totalPages: totalPages };
 }
 
 async function createMultipleProduct(products) {
