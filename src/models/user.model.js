@@ -5,15 +5,18 @@ const validator = require('validator');
 const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
-    required: [true, 'Please provide name'],
+    required: [true, "Please provide first name"],
+    trim: true,
   },
   lastName: {
     type: String,
-    required: true,
+    required: [true, "Please provide last name"],
+    trim: true,
   },
   password: {
     type: String,
-    required: [true, 'Please provide password'],
+    required: [true, "Please provide password"],
+    minlength: [8, "Password must be at least 8 characters long"],
   },
   email: {
     type: String,
@@ -32,6 +35,17 @@ const userSchema = new mongoose.Schema({
   },
   mobile: {
     type: String,
+    required: [true, "Please provide mobile number"],
+    validate: {
+      validator: function (v) {
+        return /\d{10}/.test(v);
+      },
+      message: "Please enter a valid 10-digit mobile number",
+    },
+  },
+  businessName: {
+    type: String,
+    required: function () { return this.role === "Seller"; }
   },
   otp: {
     type: String,
@@ -50,6 +64,7 @@ const userSchema = new mongoose.Schema({
   passwordTokenExpirationDate: {
     type: Date,
   },
+  // products created
   product: [
     {
       type: mongoose.Schema.Types.ObjectId,
