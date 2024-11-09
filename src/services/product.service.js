@@ -5,72 +5,69 @@ const User = require("../models/user.model");
 // Create a new product
 async function createProduct(req) {
   const reqData = req.body;
-  let topLevel = await Category.findOne({ name: reqData.topLavelCategory });
+  const userId = req.user._id;
+  let topLevel = await Category.findOne({ name: reqData.topLevelCategory });
 
   if (!topLevel) {
-    const topLavelCategory = new Category({
-      name: reqData.topLavelCategory,
+    const topLevelCategory = new Category({
+      name: reqData.topLevelCategory,
       level: 1,
     });
 
-    topLevel = await topLavelCategory.save();
+    topLevel = await topLevelCategory.save();
   }
 
   let secondLevel = await Category.findOne({
-    name: reqData.secondLavelCategory,
+    name: reqData.secondLevelCategory,
     parentCategory: topLevel._id,
   });
 
   if (!secondLevel) {
-    const secondLavelCategory = new Category({
-      name: reqData.secondLavelCategory,
+    const secondLevelCategory = new Category({
+      name: reqData.secondLevelCategory,
       parentCategory: topLevel._id,
       level: 2,
     });
 
-    secondLevel = await secondLavelCategory.save();
+    secondLevel = await secondLevelCategory.save();
   }
 
   let thirdLevel = await Category.findOne({
-    name: reqData.thirdLavelCategory,
+    name: reqData.thirdLevelCategory,
     parentCategory: secondLevel._id,
   });
 
   if (!thirdLevel) {
-    const thirdLavelCategory = new Category({
-      name: reqData.thirdLavelCategory,
+    const thirdLevelCategory = new Category({
+      name: reqData.thirdLevelCategory,
       parentCategory: secondLevel._id,
       level: 3,
     });
 
-    thirdLevel = await thirdLavelCategory.save();
+    thirdLevel = await thirdLevelCategory.save();
   }
 
-  const discountPercent = Math.round(((reqData.price - reqData.discountedPrice) / reqData.price) * 100);
-  const price = reqData.price
   const product = new Product({
+    sellerId: userId,
     title: reqData.title,
-    color: reqData.color,
     description: reqData.description,
-    discountedPrice: reqData.discountedPrice,
-    discountPersent: discountPercent,
-    imageUrl: reqData.imageUrl,
     brand: reqData.brand,
-    price: reqData.price,
-    sizes: reqData.size,
-    quantity: reqData.quantity,
+    sizes: reqData.sizes,
+    imagesUrl: reqData.imagesUrl,
     category: thirdLevel._id,
   });
 
+
   const savedProduct = await product.save();
 
-  const userId = req.user.userId;
+  console.log("Product created by user " + userId);
   const user = await User.findById(userId);
 
   if (user) {
     user.product.push(savedProduct._id);
     await user.save();
   }
+
 
   return savedProduct;
 }

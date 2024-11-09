@@ -5,6 +5,7 @@ const productService = require("../services/product.service.js")
 async function createProduct(req, res) {
   try {
     const product = await productService.createProduct(req);
+    console.log(product)
     return res.status(201).json(product);
   } catch (err) {
     return res.status(500).json({ error: err.message });
