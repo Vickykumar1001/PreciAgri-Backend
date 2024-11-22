@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: function () { return this.role === "Seller"; }
   },
+  businessType: {
+    type: String,
+    required: function () { return this.role === "Seller"; },
+    enum: ["Shopkeeper", "Wholesaler", "Distributor", "Service Provider"]
+  },
   otp: {
     type: String,
   },

@@ -8,7 +8,8 @@ const { sendVerificationEmail } = require("../utils");
 const createUser = async (userData) => {
     try {
 
-        let { firstName, lastName, email, password, role, mobile } = userData;
+        console.log(userData)
+        let { firstName, lastName, email, password, role, mobile, businessName, businessType } = userData;
 
         const isUserExist = await User.findOne({ email });
 
@@ -21,7 +22,7 @@ const createUser = async (userData) => {
         password = await bcrypt.hash(password, 8);
         const otp = crypto.randomInt(100000, 999999).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-        const user = await User.create({ firstName, lastName, email, password, role, otp, otpExpires, mobile })
+        const user = await User.create({ firstName, lastName, email, password, role, otp, otpExpires, mobile, businessName, businessType })
         await sendVerificationEmail({
             name: user.firstName,
             email: user.email,
