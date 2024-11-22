@@ -6,5 +6,6 @@ const authenticate = require("../middleware/authenticat.js");
 
 router.get("/", authenticate, userController.getAllUsers)
 router.get("/profile", authenticate, userController.getUserProfile)
+router.post("/address", authenticate, userController.addUserAddress)
 
 module.exports = router;

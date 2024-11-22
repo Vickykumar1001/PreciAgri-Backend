@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require("crypto");
 const User = require('../models/user.model.js');
+const Address = require('../models/address.model.js');
 const jwtProvider = require("../config/jwtProvider.js")
 const { sendVerificationEmail } = require("../utils");
 
@@ -106,7 +107,18 @@ const getUserProfileByToken = async (token) => {
         throw new Error(error.message)
     }
 }
+const addUserAddress = async (req) => {
+    const user = req.user;
+    const { firstName, lastName, streetAddress, city, state, zipCode, mobile } = req.body;
+    const newAddress = new Address({ firstName, lastName, streetAddress, city, state, zipCode, mobile, user: user._id });
+    const savedAddress = await newAddress.save();
 
+    // Append the new address to the user's addresses field
+    user.addresses = user.addresses || [];
+    user.addresses.push(savedAddress._id);
+    await user.save();
+    return savedAddress;
+}
 const getAllUsers = async () => {
     try {
         const users = await User.find();
@@ -123,5 +135,6 @@ module.exports = {
     findUserById,
     getUserProfileByToken,
     getUserByEmail,
-    getAllUsers
+    getAllUsers,
+    addUserAddress,
 }
