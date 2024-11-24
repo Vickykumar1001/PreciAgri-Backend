@@ -59,7 +59,7 @@ async function getOrdersBySeller(sellerId) {
                 },
             },
         ]);
-        console.log(orders);
+        // console.log(orders);
         return orders;
     } catch (error) {
         console.error('Error fetching orders by seller:', error);

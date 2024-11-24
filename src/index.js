@@ -47,7 +47,7 @@ app.use("/api/admin/orders", adminOrderRoutes);
 
 // seller routes handler
 const sellerOrderRoutes = require("./routes/sellerOrder.routes.js")
-app.use('/api', sellerOrderRoutes)
+app.use('/api/seller', sellerOrderRoutes)
 
 
 module.exports = { app };
