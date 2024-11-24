@@ -5,9 +5,7 @@ const app = express();
 const morgan = require('morgan');
 app.use(express.json())
 app.use(morgan("tiny"));
-app.use(cors(
-
-))
+app.use(cors())
 
 app.get("/", (req, res) => {
     return res.status(200).send({ message: "welcome to ecommerce api - node" })
