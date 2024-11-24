@@ -4,7 +4,7 @@ const createOrder = async (req, res) => {
   const user = req.user;
   // console.log("userr ",user,req.body)
   try {
-    let createdOrder = await orderService.createOrder(user, req.body);
+    let createdOrder = await orderService.createOrder(user, req.body.address);
 
     console.log("order ", createdOrder);
 

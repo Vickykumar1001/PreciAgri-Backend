@@ -35,7 +35,6 @@ async function createOrder(user, shippAddress) {
   }
 
   const createdOrder = new Order({
-    user,
     orderItems,
     totalPrice: cart.totalPrice,
     totalDiscountedPrice: cart.totalDiscountedPrice,
