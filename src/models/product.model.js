@@ -1,5 +1,6 @@
 // productModel.js
 const mongoose = require('mongoose');
+const { trim } = require('validator');
 
 const productSchema = new mongoose.Schema({
 
@@ -52,9 +53,22 @@ const productSchema = new mongoose.Schema({
       ref: 'reviews',
     },
   ],
-  category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'categories',
+  // category: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'categories',
+  // },
+  topLevelCategory: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  secondLevelCategory: {
+    type: String,
+    trim: true,
+  },
+  thirdLevelCategory: {
+    type: String,
+    trim: true,
   },
   status: {
     type: String,
