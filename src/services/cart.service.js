@@ -13,12 +13,12 @@ async function createCart(user) {
 
 // Find a user's cart and update cart details
 async function findUserCart(userId) {
-  let cart =await Cart.findOne({ user: userId })
-  
-  let cartItems=await CartItem.find({cart:cart._id}).populate("product")
+  let cart = await Cart.findOne({ user: userId })
 
-  cart.cartItems=cartItems
-  
+  let cartItems = await CartItem.find({ cart: cart._id }).populate("product")
+
+  cart.cartItems = cartItems
+
 
   let totalPrice = 0;
   let totalDiscountedPrice = 0;
@@ -41,25 +41,27 @@ async function findUserCart(userId) {
 
 // Add an item to the user's cart
 async function addCartItem(userId, req) {
- 
+
   const cart = await Cart.findOne({ user: userId });
   const product = await Product.findById(req.productId);
 
-  const isPresent = await CartItem.findOne({ cart: cart._id, product: product._id, userId });
-  
+
+  const isPresent = await CartItem.findOne({ cart: cart._id, product: product._id, userId, size: req.sizeName });
+  console.log(isPresent);
+
 
   if (!isPresent) {
     const cartItem = new CartItem({
       product: product._id,
       cart: cart._id,
-      quantity: 1,
+      quantity: req.quantity,
       userId,
-      price: product.discountedPrice,
-      size: req.size,
-      discountedPrice:product.discountedPrice
+      price: product.sizes[req.sizeIndx].price,
+      size: req.sizeName,
+      discountedPrice: product.sizes[req.sizeIndx].discountedPrice
     });
-    const sizeInKg = parseFloat(req.size);
-     //  cartItem.price=cartItem.price*sizeInKg
+    // const sizeInKg = parseFloat(req.size);
+    //  cartItem.price=cartItem.price*sizeInKg
     // cartItem.discountedPrice=cartItem.discountedPrice*sizeInKg
 
     const createdCartItem = await cartItem.save();
