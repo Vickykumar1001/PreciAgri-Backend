@@ -26,6 +26,24 @@ const getAllUsers = async (req, res) => {
         return res.status(500).send({ error: error.message })
     }
 }
+const getUserAddress = async (req, res) => {
+    try {
+
+        const address = await userService.getUserAddress(req)
+        return res.status(200).send(address)
+    } catch (error) {
+        return res.status(500).send({ error: error.message })
+    }
+}
+const getSellerDetail = async (req, res) => {
+    try {
+
+        const detail = await userService.getSellerDetail(req)
+        return res.status(200).send(detail)
+    } catch (error) {
+        return res.status(500).send({ error: error.message })
+    }
+}
 const addUserAddress = async (req, res) => {
     try {
 
@@ -36,4 +54,4 @@ const addUserAddress = async (req, res) => {
     }
 }
 
-module.exports = { getUserProfile, getAllUsers, addUserAddress }
+module.exports = { getUserProfile, getAllUsers, addUserAddress, getUserAddress, getSellerDetail }

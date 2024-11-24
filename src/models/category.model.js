@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const categorySchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
     maxlength: 50,
   },
   parentCategory: {
@@ -12,7 +11,6 @@ const categorySchema = new mongoose.Schema({
   },
   level: {
     type: Number,
-    required: true,
   },
 });
 
