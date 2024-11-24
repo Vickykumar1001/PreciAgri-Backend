@@ -52,7 +52,8 @@ const verifyOTP = async (verifyData) => {
         user.otpExpires = undefined;
         await user.save();
         const jwt = jwtProvider.generateToken(user._id);
-        return ({ jwt, message: "Login Success" });
+
+        return ({ user, jwt, message: "Login Success" });
     } else {
         throw new Error("Invalid or expired OTP");
     }
@@ -107,6 +108,27 @@ const getUserProfileByToken = async (token) => {
         throw new Error(error.message)
     }
 }
+const getUserAddress = async (req) => {
+    const user = req.user._id;
+    const addresses = await Address.find({ user });
+    return addresses;
+}
+const getSellerDetail = async (req) => {
+    const userId = req.params.sellerId;
+    const user = await User.findById(userId);
+    console.log("user from seller detail ", user)
+    const addresses = await Address.find({ user: userId });
+    console.log("addresses from seller detail ", addresses)
+    const details = {
+        businessName: user.businessName,
+        businessType: user.businessType,
+        streetAddress: addresses[0].streetAddress,
+        city: addresses[0].city,
+        state: addresses[0].state,
+        zipCode: addresses[0].zipCode,
+    }
+    return details;
+}
 const addUserAddress = async (req) => {
     const user = req.user;
     const { firstName, lastName, streetAddress, city, state, zipCode, mobile } = req.body;
@@ -137,4 +159,6 @@ module.exports = {
     getUserByEmail,
     getAllUsers,
     addUserAddress,
+    getUserAddress,
+    getSellerDetail
 }
