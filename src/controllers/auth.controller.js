@@ -7,12 +7,15 @@ const register = async (req, res) => {
 
     try {
         const user = await userService.createUser(req.body);
-
         await cartService.createCart(user);
 
         return res.status(200).json({ message: "Success! Please check your email to verify account" })
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.log(error)
+        if (error == "Error: User exists, but email verification is pending. Please verify your email.") {
+            return res.status(400).json({ message: "User exists, but email verification is pending." })
+        }
+        return res.status(500).json({ error })
     }
 }
 const verifyEmail = async (req, res) => {
@@ -24,6 +27,14 @@ const verifyEmail = async (req, res) => {
             return res.status(400).json({ error: error.message });
         }
         return res.status(500).json({ error: "Internal server error" });
+    }
+};
+const resendOTP = async (req, res) => {
+    try {
+        const result = await userService.resendOTP(req.body);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 };
 const login = async (req, res) => {
@@ -54,4 +65,4 @@ const login = async (req, res) => {
         return res.status(500).send({ error: error.message })
     }
 }
-module.exports = { register, verifyEmail, login }
+module.exports = { register, verifyEmail, login, resendOTP }

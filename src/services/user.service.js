@@ -8,22 +8,36 @@ const { sendVerificationEmail } = require("../utils");
 
 const createUser = async (userData) => {
     try {
-
-        console.log(userData)
+        console.log(userData);
         let { firstName, lastName, email, password, role, mobile, businessName, businessType } = userData;
 
-        const isUserExist = await User.findOne({ email });
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
 
-
-        if (isUserExist) {
-
-            throw new Error("User already exist with email : ", email)
+        if (existingUser) {
+            // Check if the user exists but is unverified
+            if (!existingUser.isVerified) {
+                // If the user exists but is unverified, return a specific message
+                throw new Error("User exists, but email verification is pending. Please verify your email.");
+            }
+            // If the user is already verified, throw the usual error
+            throw new Error("User already exists with this email.");
         }
 
+        // Hash the password
         password = await bcrypt.hash(password, 8);
+
+        // Generate OTP and expiry time
         const otp = crypto.randomInt(100000, 999999).toString();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-        const user = await User.create({ firstName, lastName, email, password, role, otp, otpExpires, mobile, businessName, businessType })
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);  // OTP valid for 10 minutes
+        const lastOtpSentAt = new Date();
+
+        // Create the user with the provided data
+        const user = await User.create({
+            firstName, lastName, email, password, role, otp, otpExpires, lastOtpSentAt, mobile, businessName, businessType
+        });
+
+        // Send OTP verification email
         await sendVerificationEmail({
             name: user.firstName,
             email: user.email,
@@ -31,13 +45,55 @@ const createUser = async (userData) => {
         });
 
         return user;
-
     } catch (error) {
-        console.log("error - ", error.message)
-        throw new Error(error.message)
+        console.log("error - ", error.message);
+        throw new Error(error.message);
     }
+};
+const resendOTP = async (userData) => {
+    try {
+        console.log(userData);
 
-}
+        const { email } = userData;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const now = new Date();
+        const THIRTY_SECONDS = 30 * 1000; // 30 seconds in milliseconds
+
+        // Check if 30 seconds have passed since the last OTP was sent
+        if (user.lastOtpSentAt && (now.getTime() - new Date(user.lastOtpSentAt).getTime()) < THIRTY_SECONDS) {
+            throw new Error("You can request a new OTP only after 30 seconds.");
+        }
+
+        // Generate new OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // Set expiry for 10 minutes
+
+        // Update user's OTP, expiry, and last sent time
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        user.lastOtpSentAt = now;
+
+        // Save updated user data
+        await user.save();
+
+        // Send the OTP to the user
+        await sendVerificationEmail({
+            name: user.firstName,
+            email: user.email,
+            otp: user.otp,
+        });
+
+        return { message: "OTP sent successfully", otpExpires: otpExpires.toISOString() };
+    } catch (error) {
+        console.error("Error - ", error.message);
+        throw new Error(error.message);
+    }
+};
 const verifyOTP = async (verifyData) => {
     const { otp, email } = verifyData;
     console.log(email);
@@ -160,5 +216,6 @@ module.exports = {
     getAllUsers,
     addUserAddress,
     getUserAddress,
+    resendOTP,
     getSellerDetail
 }
