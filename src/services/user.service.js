@@ -363,17 +363,11 @@ const getMyProducts = async (userId) => {
 
     // Use the product IDs to fetch products
     const products = await Product.find({ _id: { $in: user.product } })
-        .select('_id title sizes imagesUrl') // Select only relevant fields
+        .select('_id title brand description sizes imagesUrl') // Select only relevant fields
         .lean();
 
     // Format the response
-    return products.map(product => ({
-        productId: product._id,
-        title: product.title,
-        imageUrl: product.imagesUrl?.[0] || null, // Get the first image URL or return null
-        price: product.sizes?.[0]?.price || 0,    // Get the price of the first size or return 0
-        quantity: product.sizes?.[0]?.quantity || 0, // Get the quantity of the first size or return 0
-    }));
+    return products;
 };
 const updateUserProfile = async (userId, updateData) => {
     try {

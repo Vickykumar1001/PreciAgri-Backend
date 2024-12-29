@@ -1,10 +1,13 @@
 const Category = require("../models/category.model");
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
-
+const { StatusCodes } = require('http-status-codes');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 // Create a new product
 async function createProduct(req) {
   const reqData = req.body;
+  console.log(reqData);
   const userId = req.user._id;
   // let topLevel = await Category.findOne({ name: reqData.topLevelCategory });
 
@@ -46,14 +49,25 @@ async function createProduct(req) {
 
   //   thirdLevel = await thirdLevelCategory.save();
   // }
+  const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
 
+  const imageUrls = [];
+
+  for (const file of files) {
+    const result = await cloudinary.uploader.upload(file.tempFilePath, {
+      use_filename: true,
+      folder: 'product-images',
+    });
+    imageUrls.push(result.secure_url);
+    fs.unlinkSync(file.tempFilePath); // Remove temporary file after uploading
+  }
   const product = new Product({
     sellerId: userId,
     title: reqData.title,
     description: reqData.description,
     brand: reqData.brand,
-    sizes: reqData.sizes,
-    imagesUrl: reqData.imagesUrl,
+    sizes: JSON.parse(reqData.sizes),
+    imagesUrl: imageUrls,
     // category: thirdLevel
     topLevelCategory: reqData.topLevelCategory,
     secondLevelCategory: reqData.secondLevelCategory,
@@ -87,8 +101,57 @@ async function deleteProduct(productId) {
 }
 
 // Update a product by ID
-async function updateProduct(productId, reqData) {
-  const updatedProduct = await Product.findByIdAndUpdate(productId, reqData);
+async function updateProduct(productId, req) {
+  const userId = req.user._id;
+  const reqData = req.body;
+
+  // Find the product to be updated
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    return res.status(404).json({ message: 'Product not found' });
+  }
+
+  if (product.sellerId.toString() !== userId.toString()) {
+    return res.status(403).json({ message: 'Unauthorized to edit this product' });
+  }
+
+  // Update other product details
+  product.title = reqData.title || product.title;
+  product.description = reqData.description || product.description;
+  product.brand = reqData.brand || product.brand;
+  product.sizes = reqData.sizes ? JSON.parse(reqData.sizes) : product.sizes;
+  product.topLevelCategory = reqData.topLevelCategory || product.topLevelCategory;
+  product.secondLevelCategory = reqData.secondLevelCategory || product.secondLevelCategory;
+  product.thirdLevelCategory = reqData.thirdLevelCategory || product.thirdLevelCategory;
+
+  // Handle image updates
+  const existingImages = reqData.existingImages ? JSON.parse(reqData.existingImages) : [];
+  const imagesToRemove = product.imagesUrl.filter((url) => !existingImages.includes(url));
+
+  // Remove unwanted images from Cloudinary
+  for (const url of imagesToRemove) {
+    const publicId = url.split('/').slice(-1)[0].split('.')[0]; // Extract public ID
+    await cloudinary.uploader.destroy(`product-images/${publicId}`);
+  }
+
+  // Update product images
+  const files = Array.isArray(req.files?.newImages) ? req.files.newImages : req.files?.newImages ? [req.files.newImages] : [];
+  const newImageUrls = [];
+  console.log("files size is", files.length)
+  for (const file of files) {
+    const result = await cloudinary.uploader.upload(file.tempFilePath, {
+      use_filename: true,
+      folder: 'product-images',
+    });
+    newImageUrls.push(result.secure_url);
+    fs.unlinkSync(file.tempFilePath); // Remove temporary file
+  }
+  console.log("image upload", newImageUrls);
+  product.imagesUrl = [...existingImages, ...newImageUrls];
+
+  // Save the updated product
+  const updatedProduct = await product.save();
   return updatedProduct;
 }
 

@@ -1,16 +1,23 @@
+require('dotenv').config();
 const express = require("express")
 const cors = require('cors');
-
+const fileUpload = require('express-fileupload');
 const app = express();
 const morgan = require('morgan');
 app.use(express.json())
 app.use(morgan("tiny"));
 app.use(cors())
-
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET,
+});
 app.get("/", (req, res) => {
     return res.status(200).send({ message: "welcome to ecommerce api - node" })
 })
-
+app.use(express.static('./public'));
+app.use(fileUpload({ useTempFiles: true }));
 const authRouter = require("./routes/auth.routes.js")
 app.use("/auth", authRouter)
 

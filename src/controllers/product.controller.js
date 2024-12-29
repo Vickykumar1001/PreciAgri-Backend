@@ -1,6 +1,5 @@
 // productController.js
 const productService = require("../services/product.service.js")
-
 // Create a new product
 async function createProduct(req, res) {
   try {
@@ -8,6 +7,7 @@ async function createProduct(req, res) {
     console.log(product)
     return res.status(201).json(product);
   } catch (err) {
+    // console.log(err)
     return res.status(500).json({ error: err.message });
   }
 }
@@ -27,9 +27,11 @@ async function deleteProduct(req, res) {
 async function updateProduct(req, res) {
   try {
     const productId = req.params.id;
-    const product = await productService.updateProduct(productId, req.body);
+    // console.log(req.body);
+    const product = await productService.updateProduct(productId, req);
     return res.json(product);
   } catch (err) {
+    console.log(err)
     res.status(500).json({ error: err.message });
   }
 }
@@ -48,6 +50,7 @@ async function updateProduct(req, res) {
 async function findProductById(req, res) {
   try {
     const productId = req.params.id;
+    console.log(productId)
     const product = await productService.findProductById(productId);
     return res.status(200).send(product);
   } catch (err) {
@@ -99,6 +102,21 @@ const createMultipleProduct = async (req, res) => {
     res.status(500).json({ error: "Something went wrong" });
   }
 };
+
+
+// const uploadProductImages = async (req, res) => {
+//   try {
+//     console.log("Uploading product images");
+//     // Ensure req.files is an array
+
+//     return res.status(StatusCodes.OK).json({ images: imageUrls });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Image upload failed' });
+//   }
+// };
+
+
 
 module.exports = {
   createProduct,
