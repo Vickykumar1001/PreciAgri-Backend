@@ -2,9 +2,10 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require("crypto");
 const User = require('../models/user.model.js');
+const Product = require('../models/product.model.js');
 const Address = require('../models/address.model.js');
 const jwtProvider = require("../config/jwtProvider.js")
-const { sendVerificationEmail } = require("../utils");
+const { sendVerificationEmail, sendResetPasswordEmail } = require("../utils");
 
 const createUser = async (userData) => {
     try {
@@ -45,6 +46,26 @@ const createUser = async (userData) => {
         });
 
         return user;
+    } catch (error) {
+        console.log("error - ", error.message);
+        throw new Error(error.message);
+    }
+};
+const resetPassword = async (userData) => {
+    try {
+        console.log(userData);
+        let { email, newPassword } = userData;
+
+        // Check if user already exists
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+        // Hash the password
+        user.password = await bcrypt.hash(newPassword, 8);
+        await user.save();
+        return { message: "Password updated successfully" };
     } catch (error) {
         console.log("error - ", error.message);
         throw new Error(error.message);
@@ -94,6 +115,86 @@ const resendOTP = async (userData) => {
         throw new Error(error.message);
     }
 };
+
+const resendOTPForgotPassword = async (userData) => {
+    try {
+        console.log(userData);
+        const { email } = userData;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const now = new Date();
+        const THIRTY_SECONDS = 30 * 1000; // 30 seconds in milliseconds
+
+        // Check if 30 seconds have passed since the last OTP was sent
+        if (user.lastOtpSentAt && (now.getTime() - new Date(user.lastOtpSentAt).getTime()) < THIRTY_SECONDS) {
+            throw new Error("You can request a new OTP only after 30 seconds.");
+        }
+
+        // Generate new OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // Set expiry for 10 minutes
+
+        // Update user's OTP, expiry, and last sent time
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        user.lastOtpSentAt = now;
+
+        // Save updated user data
+        await user.save();
+
+        // Send the OTP to the user
+        await sendResetPasswordEmail({
+            name: user.firstName,
+            email: user.email,
+            otp: user.otp,
+        });
+
+        return { message: "OTP sent successfully", otpExpires: otpExpires.toISOString() };
+    } catch (error) {
+        console.error("Error - ", error.message);
+        throw new Error(error.message);
+    }
+};
+const forgotPassword = async (userData) => {
+    try {
+        console.log(userData);
+
+        const { email } = userData;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+        const now = new Date();
+        // Generate new OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // Set expiry for 10 minutes
+
+        // Update user's OTP, expiry, and last sent time
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        user.lastOtpSentAt = now;
+
+        // Save updated user data
+        await user.save();
+
+        // Send the OTP to the user
+        await sendResetPasswordEmail({
+            name: user.firstName,
+            email: user.email,
+            otp: user.otp,
+        });
+
+        return { message: "OTP sent successfully", otpExpires: otpExpires.toISOString() };
+    } catch (error) {
+        console.error("Error - ", error.message);
+        throw new Error(error.message);
+    }
+};
 const verifyOTP = async (verifyData) => {
     const { otp, email } = verifyData;
     console.log(email);
@@ -114,6 +215,30 @@ const verifyOTP = async (verifyData) => {
         throw new Error("Invalid or expired OTP");
     }
 };
+const verifyForgotPasswordOTP = async (verifyData) => {
+    const { otp, email } = verifyData;
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // Check if OTP matches and is still valid
+    if (user.otp === otp && user.otpExpires > Date.now()) {
+        // Clear OTP-related fields to ensure it's used only once
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
+
+        // Return success message, allowing the user to proceed to reset password
+        return { message: "OTP Verified. Proceed to reset your password." };
+    } else {
+        throw new Error("Invalid or expired OTP");
+    }
+};
+
 const findUserById = async (userId) => {
     try {
         const user = await User.findById(userId);
@@ -197,6 +322,28 @@ const addUserAddress = async (req) => {
     await user.save();
     return savedAddress;
 }
+const changePassword = async (userId, oldPassword, newPassword) => {
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new Error('User not found.');
+    }
+
+    // Verify the old password
+    const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isPasswordMatch) {
+        throw new Error('Old password is incorrect.');
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password
+    user.password = hashedPassword;
+    await user.save();
+};
 const getAllUsers = async () => {
     try {
         const users = await User.find();
@@ -207,6 +354,36 @@ const getAllUsers = async () => {
     }
 }
 
+const getMyProducts = async (userId) => {
+    // Fetch the product IDs from the user schema
+    const user = await User.findById(userId).select('product').lean();
+    if (!user || !user.product || user.product.length === 0) {
+        return []; // Return an empty array if no products are found
+    }
+
+    // Use the product IDs to fetch products
+    const products = await Product.find({ _id: { $in: user.product } })
+        .select('_id title sizes imagesUrl') // Select only relevant fields
+        .lean();
+
+    // Format the response
+    return products.map(product => ({
+        productId: product._id,
+        title: product.title,
+        imageUrl: product.imagesUrl?.[0] || null, // Get the first image URL or return null
+        price: product.sizes?.[0]?.price || 0,    // Get the price of the first size or return 0
+        quantity: product.sizes?.[0]?.quantity || 0, // Get the quantity of the first size or return 0
+    }));
+};
+const updateUserProfile = async (userId, updateData) => {
+    try {
+        console.log(updateData)
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+        return updatedUser;
+    } catch (error) {
+        throw new Error('Failed to update user profile: ' + error.message);
+    }
+};
 module.exports = {
     createUser,
     verifyOTP,
@@ -217,5 +394,12 @@ module.exports = {
     addUserAddress,
     getUserAddress,
     resendOTP,
-    getSellerDetail
+    getSellerDetail,
+    forgotPassword,
+    verifyForgotPasswordOTP,
+    resendOTPForgotPassword,
+    resetPassword,
+    changePassword,
+    getMyProducts,
+    updateUserProfile
 }
