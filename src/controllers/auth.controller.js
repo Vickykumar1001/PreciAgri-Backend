@@ -29,9 +29,55 @@ const verifyEmail = async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+const verifyForgotPasswordOTP = async (req, res) => {
+    try {
+        const result = await userService.verifyForgotPasswordOTP(req.body);
+        return res.status(200).json(result);
+    } catch (error) {
+        if (error.message === "User not found" || error.message === "Invalid or expired OTP") {
+            return res.status(400).json({ error: error.message });
+        }
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 const resendOTP = async (req, res) => {
     try {
         const result = await userService.resendOTP(req.body);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+const resendOTPForgotPassword = async (req, res) => {
+    try {
+        console.log(req.body)
+        const result = await userService.resendOTPForgotPassword(req.body);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+const resetPassword = async (req, res) => {
+    try {
+        const { email, newPassword, confirmPassword } = req.body;
+        console.log(email, newPassword, confirmPassword)
+        if (!email || !newPassword || !confirmPassword) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+        const result = await userService.resetPassword(req.body);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+const forgotPassword = async (req, res) => {
+    try {
+        const result = await userService.forgotPassword(req.body);
         return res.status(200).json(result);
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -65,4 +111,4 @@ const login = async (req, res) => {
         return res.status(500).send({ error: error.message })
     }
 }
-module.exports = { register, verifyEmail, login, resendOTP }
+module.exports = { register, verifyEmail, login, resendOTP, forgotPassword, verifyForgotPasswordOTP, resendOTPForgotPassword, resetPassword }
