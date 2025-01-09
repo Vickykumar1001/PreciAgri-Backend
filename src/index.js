@@ -56,5 +56,8 @@ app.use("/api/admin/orders", adminOrderRoutes);
 const sellerOrderRoutes = require("./routes/sellerOrder.routes.js")
 app.use('/api/seller', sellerOrderRoutes)
 
+const wishlistRoutes = require('./routes/wishlist.routes.js');
+app.use('/api/wishlist', wishlistRoutes);
+
 
 module.exports = { app };
